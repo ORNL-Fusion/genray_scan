@@ -8,7 +8,7 @@ pro genray_scan, runGENRAY = _runGENRAY
     t_eV = 4.0
     wrf = 2*!pi*freq
 
-	templateDir = 'template'    	
+	templateDir = 'template2'    	
     genrayBinary = expand_path( '~/code/genray-c_MOD0716/xgenray' )
 
     nC = 25
@@ -21,11 +21,11 @@ pro genray_scan, runGENRAY = _runGENRAY
     ; Beam parameters
 
     xOffSet = 0.10
-    zOffSet = 0.005
-    angle_deg = 0 
-    width_m = 0.05
-    spread_deg = 0.0
-    rayDensity = 3
+    zOffSet = -0.02
+    angle_deg = 20 
+    width_m = 0.02
+    spread_deg = 1.0
+    rayDensity = 5
 
     run = 0
 
@@ -55,6 +55,8 @@ pro genray_scan, runGENRAY = _runGENRAY
 
             genray_set_params, rayTxt = rayTxt
 
+            genray_set_params, /density
+
         endif
 
         ; Run genray
@@ -69,14 +71,18 @@ pro genray_scan, runGENRAY = _runGENRAY
 
         thisGR = genray_read_output()
 
-        if size(pwrAll,/type) eq 0 then begin
-            nRPwr = n_elements(thisGR.pwr_e[*,0])
+        if size(pwr_e,/type) eq 0 then begin
+            nRPwr = n_elements(thisGR.spwr_rz_e[*,0])
             nRays = n_elements(thisGR.transm_ox)
-            pwrAll = fltArr(nRPwr,nC)
+            pwr_e = fltArr(nRPwr,nC)
+            pwr_i = fltArr(nRPwr,nC)
+            pwr_c = fltArr(nRPwr,nC)
         endif
    
-        pwrAll[*,run] = total(thisGR.pwr_e,2)
- 
+        pwr_e[*,run] = total(thisGR.spwr_rz_e,2)
+        pwr_i[*,run] = total(thisGR.spwr_rz_i,2)
+        pwr_c[*,run] = total(thisGR.spwr_rz_cl,2)
+
         cd, rootDir
         ++run
 
@@ -94,9 +100,9 @@ pro genray_scan, runGENRAY = _runGENRAY
     levels = levels/max(levels)*maxLevel
     colors = 255-(bytScl(levelsA,top=254)+1)
 
-    c=contour(pwrAll,r,curc,c_value=levels,c_color=colors,/fill,rgb_table=3,xRange=[0.0,.08],$
+    c=contour(pwr_e,r,curc,c_value=levels,c_color=colors,/fill,rgb_table=3,xRange=[0.0,.08],$
             xtitle='r [m]', ytitle='Coil Current [A]', title='(Unmapped)')
-
+stop
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  
     cdfId = ncdf_open ( fileList[0], /noWrite ) 

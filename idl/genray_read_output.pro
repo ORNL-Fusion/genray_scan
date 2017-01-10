@@ -109,6 +109,9 @@ function genray_read_output
         wz : g_wz, $
         ray_x : g_ray_x, $
         ray_y : g_ray_y, $
-        ray_z : g_ray_z }
+        ray_z : g_ray_z, $
+        spwr_rz_e : g_pwr_e, $
+        spwr_rz_i : g_pwr_i, $
+        spwr_rz_cl : g_pwr_cl }
 
 end

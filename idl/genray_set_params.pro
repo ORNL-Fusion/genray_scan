@@ -1,4 +1,4 @@
-pro genray_set_params, current = current, rayTxt = rayTxt
+pro genray_set_params, current = current, rayTxt = rayTxt, density = density
 
     fileName = 'genray.in'
     backupFileName = 'genray.in.template'
@@ -17,45 +17,74 @@ pro genray_set_params, current = current, rayTxt = rayTxt
     endfor
     free_lun, lun
 
-    ; Parse genray.in and modify
+    ; Template ray block is from line 1119:1128
 
-    for n=0,nLines-1 do begin
+    aboveRays = data[0:1118]
+    rayBlock = data[1119:1178]
+    belowRays = data[1179:-1] 
 
-        ; Overwrite coil current
 
-        if keyword_set(current) then begin 
+    ; Overwrite coil current
+    ; ----------------------
 
-            templateStr = ' curc=   264.d3,  264.d3,  264.d3,  264.d3 ! NEW ! [A] ! For model_b=2 only'
+    if keyword_set(current) then begin 
 
-            if strCmp( data[n], templateStr ) then begin
+        lineNo = 179 
 
-                print, 'UPDATING CURRENTS BLOCK'
-                cStr = string( current, format='(i3.3)')
-                newStr =  ' curc=   '+cStr+'.d3,  '+cStr+'.d3,  '+cStr+'.d3,  '+cStr+'.d3'
-                data[n] = newStr
+        print, 'UPDATING CURRENTS BLOCK'
+        cStr = string( current, format='(i3.3)')
+        newStr =  ' curc= 0.d3,  '+cStr+'.d3,  '+cStr+'.d3,  '+cStr+'.d3'
+        aboveRays[lineNo] = newStr
 
-            endif 
+    endif
 
-        endif
-
-    endfor
 
     ; Overwrite the rays with the rayTxt block
+    ; ----------------------------------------
 
     if keyword_set(rayTxt) then begin
 
-        ; Template ray block is from line 1119:1128
-
-        top = data[0:1118]
-        bottom = data[1129:-1] 
-
-        data = [top,rayTxt,bottom]
+        rayBlock = rayTxt
 
         print, 'UPDATING RAYS BLOCK'
-stop
+
     endif
 
-    nLines = n_elements(data)
+
+    ; Overwrite the density profile
+    ; -----------------------------
+
+    if keyword_set(density) then begin
+
+        densStart = 93 
+
+        nDens = 64
+
+        template_wall_rmax = 0.12  
+
+        floor_ = 1e17
+        mag = 9e18
+        offset = 3.2 ; cm
+        width = 0.38 ; cm
+        
+        xMin = 0
+        xMax = template_wall_rmax
+        nX = nDens
+        x = fIndGen(nX)/(nX-1)*(xMax-xMin)+xMin
+        y = ( mag * ( 1.0 - tanh( (x*1e2-offset)/width ) ) ) > floor_ 
+
+        densBlock = 'prof = '+string(y[0])
+        for i=1,nX-1 do begin
+            densBlock = [ densBlock, string(y[i]) ]
+        endfor
+
+        belowRays[densStart:densStart+nDens-1] = densBlock
+
+    endif    
+
+    data2 = [ aboveRays, rayBlock, belowRays ]
+
+    nLines = n_elements(data2)
 
     ; Write new genray.in
 
@@ -67,7 +96,7 @@ stop
 
     openw, lun, fileName, /get_lun
     for n=0,nLines-1 do begin
-        printf, lun, data[n]
+        printf, lun, data2[n]
     endfor
     free_lun, lun
 

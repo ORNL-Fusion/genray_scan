@@ -37,7 +37,7 @@ pro genray_plot
     x3D = rebin(xMPEX,nX,nY,nZ)
     y3D = transpose(rebin(yMPEX,nY,nX,nZ),[1,0,2])
     z3D = transpose(rebin(zMPEX,nZ,nX,nY),[1,2,0])
-stop
+
     gr = genray_read_output()
 
     ; Add offset
@@ -151,7 +151,8 @@ stop
 
     c=contour(L,zUse,xUse,c_value=[0],/over, rgb_table=0,c_color=0,c_thick=2)
     c=contour(R,zUse,xUse,c_value=[0],/over, rgb_table=1,c_color=[150],c_thick=2)
-    c=contour(P,zUse,xUse,c_value=[0],/over, rgb_table=7,c_color=[150],c_thick=2)
+    cp=contour(P,zUse,xUse,c_value=[0],/over, rgb_table=7,c_color=[150],c_thick=2)
+    contour, p, zUse, xUse, levels=[0],path_xy=cp_path, /path_data_coords
     c=contour(wrf/wUH,zUse,xUse,c_value=[1],/over, rgb_table=7,c_color=[254],c_thick=2)
     c=contour(wrf/wce,zUse,xUse,c_value=[1,2,3,4,5,6,7],/over, rgb_table=0,c_color=0,c_label_show=1,c_thick=2)
 
@@ -175,8 +176,34 @@ stop
         lineStyle='none', symbol='s', sym_size=1.0, $
         xRange = range, yRange = range, aspect_ratio=1.0, aspect_z = 1.0 )
     for n=0,n_elements(gr.ray_x[0,*])-1 do begin
-        p=plot3d( gr.ray_x[*,n], gr.ray_y[*,n], gr.ray_z[*,n], /over , zTitle='Z' )
+        p=plot3d( gr.ray_x[0:gr.nrayelt[n]-1,n], $
+            gr.ray_y[0:gr.nrayelt[n]-1,n], gr.ray_z[0:gr.nrayelt[n]-1,n]$
+            , /over , zTitle='Z', thick=2 )
     endfor
 
+    nPlasma = 12 
+    theta = fIndGen(nPlasma)/nPlasma*360
+    plasma_outline_r = cp_path[1,*]
+    plasma_outline_z = cp_path[0,*]
+    iiKeep = where( abs(plasma_outline_r) lt 0.05 and plasma_outline_r gt 0.001 )
+    _r = plasma_outline_r[iiKeep]
+    _z = plasma_outline_z[iiKeep]
+    for n=0,nPlasma-1 do begin
+        _x = _r * cos(theta[n])
+        _y = _r * sin(theta[n])
+        p=plot3d(_x,_y,_z,/over,thick=3,color='r',transparency=60)
+    endfor
+
+    c = contour(transpose(gr.spwr_rz_e), gr.pwr_z, gr.pwr_r, layout=[1,3,1],/fill,title='power absorped (e)')
+    c = contour(transpose(gr.spwr_rz_i), gr.pwr_z, gr.pwr_r, layout=[1,3,2],/current,/fill,title='power absorped (i)')
+    c = contour(transpose(gr.spwr_rz_cl), gr.pwr_z, gr.pwr_r, layout=[1,3,3],/current,/fill,title='power absorped (cl)')
+
+    scaleToDensFac = 5e7
+    p=plot(gr.pwr_r,total(gr.spwr_rz_e,2)*scaleToDensFac,title='Absorped Power',$
+        xTitle='r [m]',thick=2, color='b')
+    p=plot(gr.pwr_r,total(gr.spwr_rz_i,2)*scaleToDensFac,color='r',/over,thick=2)
+    p=plot(gr.pwr_r,total(gr.spwr_rz_cl,2)*scaleToDensFac,/over,thick=2)
+    thisDensity = interpol( gr.dens_xy[*,n_elements(gr.x)/2], gr.x, gr.pwr_r )
+    pp=plot(gr.pwr_r,thisDensity,/over)
 stop
 end

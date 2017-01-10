@@ -10,11 +10,11 @@ function genray_create_rays, $
 
 	if keyword_set(_beam) then beam = _beam else beam = 1	
 	if keyword_set(_scan) then scan = _scan else scan = 0	
-	if keyword_set(_xOffSet) then xOffSet = _xOffSet else xOffSet = 0.07	
-	if keyword_set(_zOffSet) then zOffSet = _zOffSet else zOffSet = 0.005	
-	if keyword_set(_angle_deg) then angle_deg = _angle_deg else angle_deg = 20	
+	if keyword_set(_xOffSet) then xOffSet = _xOffSet else xOffSet = 0.	
+	if keyword_set(_zOffSet) then zOffSet = _zOffSet else zOffSet = 0.0	
+	if keyword_set(_angle_deg) then angle_deg = _angle_deg else angle_deg = 0.0
 	if keyword_set(_width_m) then width_m = _width_m else width_m = 0.05 	
-	if keyword_set(_spread_deg) then spread_deg = _spread_deg else spread_deg = 10.0	
+	if keyword_set(_spread_deg) then spread_deg = _spread_deg else spread_deg = 0
 	if keyword_set(_rayDensity) then rayDensity = _rayDensity else rayDensity = 3	
 
 if scan then begin
@@ -76,17 +76,17 @@ if beam eq 1 then begin
     rArr = sqrt( xArr^2 + yArr^2 )
     pArr = atan( yArr, xArr ) * !radeg
 
-    ; This seems to be the angle away from the vector from the origin to the point in the x-y plane
-    ; i.e., for parallel rays in the x-y plane we need to subtract an angle 
-    
-    alp = sin ( atan( c1_2d[iiKeep], c2_2d[iiKeep] ) ) * spread_deg + 0 - atan(c1_2d[iiKeep],xArr)*!radeg 
-    alp = alp*0 + 180
+    ; Angle in the x-y plane
+    alp = 180 + $
+        cos ( atan( c1_2d[iiKeep], c2_2d[iiKeep] ) + !pi ) * spread_deg $
+        * sqrt ( c1_2d[iiKeep]^2 + c2_2d[iiKeep]^2 ) / ( width_m / 2 )
 
     ; Angle in the x-z plane
-    bet = cos ( atan( c1_2d[iiKeep], c2_2d[iiKeep] ) ) * spread_deg + angle_deg
-    bet = bet * 0
+    bet = angle_deg + $
+        sin ( atan( c1_2d[iiKeep], c2_2d[iiKeep] ) ) * spread_deg $ 
+        * sqrt ( c1_2d[iiKeep]^2 + c2_2d[iiKeep]^2 ) / ( width_m / 2 )
 
-    pow = xArr*0 + 0.02d6
+    pow = xArr*0 + 100e3 
 
     txt = ['ncone='+string(iiKeepCnt,format='(i3.3)') ]
     txt = [txt, 'powtot='+ StrJoin(string(pow)) ]
