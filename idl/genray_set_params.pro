@@ -121,5 +121,5 @@ pro genray_set_params, current = current, rayTxt = rayTxt, density = density, T_
         printf, lun, data2[n]
     endfor
     free_lun, lun
-
+stop
 end

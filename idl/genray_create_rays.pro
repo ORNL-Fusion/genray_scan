@@ -3,7 +3,8 @@ function genray_create_rays, $
     zOffSet = _zOffSet, $
     angle_deg = _angle_deg, $
     width_m = width_m, $
-    spread_deg = _spread_deg, $
+    spread_deg_x = _spread_deg_x, $
+    spread_deg_z = _spread_deg_z, $
     rayDensity = _rayDensity, $
     beam = _beam, $
     scan = _scan 
@@ -14,7 +15,8 @@ function genray_create_rays, $
 	if keyword_set(_zOffSet) then zOffSet = _zOffSet else zOffSet = 0.0	
 	if keyword_set(_angle_deg) then angle_deg = _angle_deg else angle_deg = 0.0
 	if keyword_set(_width_m) then width_m = _width_m else width_m = 0.05 	
-	if keyword_set(_spread_deg) then spread_deg = _spread_deg else spread_deg = 0
+	if keyword_set(_spread_deg_x) then spread_deg_x = _spread_deg_x else spread_deg_x = 0
+    if keyword_set(_spread_deg_z) then spread_deg_z = _spread_deg_z else spread_deg_z = 0
 	if keyword_set(_rayDensity) then rayDensity = _rayDensity else rayDensity = 3	
 
 if scan then begin
@@ -69,6 +71,14 @@ if beam eq 1 then begin
 
     iiKeep = where( sqrt( c1_2d^2 + c2_2d^2 ) le width_m/2, iiKeepCnt )
 
+    if iiKeepCnt gt 199 then begin
+
+        print, 'ERROR: Too many rays'
+        print, 'Adjust "nconea" first'
+        stop
+
+    endif
+
     xArr = c1_2d[iiKeep] * tan( angle_deg * !dtor ) + xOffSet 
     yArr = c2_2d[iiKeep]
     zArr = c1_2d[iiKeep] + zOffSet
@@ -78,26 +88,26 @@ if beam eq 1 then begin
 
     ; Angle in the x-y plane
     alp = 180 + $
-        cos ( atan( c1_2d[iiKeep], c2_2d[iiKeep] ) + !pi ) * spread_deg $
+        cos ( atan( c1_2d[iiKeep], c2_2d[iiKeep] ) + !pi ) * spread_deg_x $
         * sqrt ( c1_2d[iiKeep]^2 + c2_2d[iiKeep]^2 ) / ( width_m / 2 )
 
     ; Angle in the x-z plane
     bet = angle_deg + $
-        sin ( atan( c1_2d[iiKeep], c2_2d[iiKeep] ) ) * spread_deg $ 
+        sin ( atan( c1_2d[iiKeep], c2_2d[iiKeep] ) ) * spread_deg_z $ 
         * sqrt ( c1_2d[iiKeep]^2 + c2_2d[iiKeep]^2 ) / ( width_m / 2 )
 
     pow = xArr*0 + 100e3 
 
     txt = ['ncone='+string(iiKeepCnt,format='(i3.3)') ]
-    txt = [txt, 'powtot='+ StrJoin(string(pow)) ]
-    txt = [txt, 'zst='+    StrJoin(string(zArr)) ]
-    txt = [txt, 'rst='+    StrJoin(string(rArr)) ] 
-    txt = [txt, 'phist='+  StrJoin(string(pArr)) ] 
-    txt = [txt, 'betast='+ StrJoin(string(bet)) ] 
-    txt = [txt, 'alfast='+ StrJoin(string(alp)) ] 
-    txt = [txt, 'alpha1='+ StrJoin(string(pow*0)) ]
-    txt = [txt, 'alpha2='+ StrJoin(string(pow*0)) ]
-
+    txt = [txt, ['powtot=', string(pow)] ]
+    txt = [txt, ['zst='   , string(zArr)] ]
+    txt = [txt, ['rst='   , string(rArr)] ] 
+    txt = [txt, ['phist=' , string(pArr)] ] 
+    txt = [txt, ['betast=', string(bet)] ] 
+    txt = [txt, ['alfast=', string(alp)] ] 
+    txt = [txt, ['alpha1=', string(pow*0)] ]
+    txt = [txt, ['alpha2=', string(pow*0)] ]
+stop
 endif
 
 return, txt

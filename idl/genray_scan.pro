@@ -5,14 +5,13 @@ pro genray_scan, runGENRAY = _runGENRAY
     @constants
 
     freq = 28e9
-    t_eV = 4.0
     wrf = 2*!pi*freq
     
-    T_eV = 10.0
+    T_eV = 20.0
 
 	templateDir = 'template3'    	
-    ;genrayBinary = expand_path( '~/code/genray-c/genray-c_160826.1/xgenray' )
-    genrayBinary = './rungenray.sh' 
+    genrayBinary = expand_path( '~/code/genray-c/genray-c_160826.1/xgenray' )
+    ;genrayBinary = './rungenray.sh' 
 
     nC = 25
     curMin = 175
@@ -27,18 +26,43 @@ pro genray_scan, runGENRAY = _runGENRAY
     zOffSet = -0.02
     angle_deg = 20 
     width_m = 0.02
-    spread_deg = -5.0
-    rayDensity = 5
+    spread_deg_x = -15.0
+    spread_deg_z = 0.0
+    rayDensity = 7
+
+    params = {$
+            xOffset:xOffset,$
+            zOffset:zOffset,$
+            angle_deg:angle_deg,$
+            width_m:width_m,$
+            spread_deg_x:spread_deg_x,$
+            spread_deg_z:spread_deg_z,$
+            rayDensity:rayDensity,$
+            nC:nC,$
+            curMin:curMin,$
+            curMax:curMax,$
+            curc:curc,$
+            freq:freq,$
+            t_eV:t_eV,$
+            templateDir:templateDir }
+
+    save, parames, fileName='run-params.sav' 
 
     run = 0
 
     cd, current = rootDir
 
+    ; Stage runs
+
+    launchScript = !null
+    thisDirAll = !null
+    nJobsToRun = 0
+
     for c=0,nC-1 do begin
 
-        ; Stage run
-
         thisDir = 'run'+string(run,format='(i3.3)')
+        thisDirAll = [thisDirAll,thisDir]
+
         print, thisDir
 
         setParams = 0
@@ -59,35 +83,71 @@ pro genray_scan, runGENRAY = _runGENRAY
 
         if runGENRAY then begin
         if setParams then begin
-            
-            genray_set_params, current = curc[c]
 
-            rayTxt = genray_create_rays( xOffSet=xOffSet, zOffSet=zOffSet, $
-                angle_deg=angle_deg, width_m=width_m, spread_deg=spread_deg, $
+             rayTxt = genray_create_rays( xOffSet=xOffSet, zOffSet=zOffSet, $
+                angle_deg=angle_deg, width_m=width_m, $
+                spread_deg_x=spread_deg_x, spread_deg_z=spread_deg_z, $
                 rayDensity=rayDensity )  
 
-            genray_set_params, rayTxt = rayTxt
+            genray_set_params, current = curc[c], rayTxt = rayTxt, /density, T_eV = T_eV
 
-            genray_set_params, /density
+            ;genray_set_params, rayTxt = rayTxt
 
-            genray_set_params, T_eV = T_eV
+            ;genray_set_params, /density
+
+            ;genray_set_params, T_eV = T_eV
 
         endif else begin
             print, 'Parameters left alone'
         endelse
         endif
 
-        ; Run genray
+        ; Update launch script
 
         if runGENRAY then begin
         if file_test( 'genray.nc') eq 0 then begin
-            print, 'Running GENRAY ...'
-            spawn, genrayBinary, stdOut, stdErr
-            print, 'DONE'
+            print, 'Updating launch script'
+            launchScript = [ launchScript, 'cd '+thisDir, genrayBinary+' > ../genray.log.'+thisDir+' &', 'cd ..' ]
+            ++nJobsToRun
         endif else begin
             print, 'Nothing to do.'
         endelse
         endif
+
+        cd, rootDir
+        ++run
+
+    endfor
+
+    ; Run all genray runs
+
+    fileName = 'launchAllRuns.sh'
+    nLines = n_elements(launchScript)
+    openw, lun, fileName, /get_lun
+    for n=0,nLines-1 do begin
+        printf, lun, launchScript[n]
+    endfor
+    free_lun, lun
+
+    if runGENRAY then begin
+        print, 'Running GENRAY ...'
+        spawn, 'chmod +x launchAllRuns.sh'
+        spawn, './launchAllRuns.sh', stdOut, stdErr
+    endif
+    
+    ; Pause while jobs run
+
+    print, 'PAUSING WHILE GENRAY JOBS RUN (type .c enter when done)'
+    print, 'Running this many: '+string(nJobsToRun,format='(i4.4)')
+    stop
+
+    run = 0
+
+    for c=0,nC-1 do begin
+
+        print, thisDirAll[c]
+
+        cd, thisDirAll[c]
 
         ; Get ouput
 
@@ -121,16 +181,19 @@ pro genray_scan, runGENRAY = _runGENRAY
     levels = [-4,-3,-2,-1,0,1,2] 
     colors = 255-bytscl(levels,top=244)
 
-    c=contour(alog10(pwr_e_percent),r,curc/40*1e3,c_value=levels,c_color=colors,rgb_table=3,xRange=[0.0,.08],$
+    y = curc/40*1e3
+    c=contour(alog10(pwr_e_percent),r,y,c_value=levels,c_color=colors,rgb_table=3,xRange=[0.0,.08],$
             xtitle='r [m]', ytitle='Coil Current [A]', $
             title='Log10(Deposited Power) (e), Max Value: '+string(max(pwr_e_percent),format='(f4.1)')+'%', $
-            layout=[3,1,1],/fill)
-    c=contour(alog10(pwr_i_percent),r,curc/40*1e3,c_value=levels,c_color=colors,rgb_table=3,xRange=[0.0,.08],$
-            xtitle='r [m]', ytitle='Coil Current [A]', title='Deposited Power (i)', layout=[3,1,2], /current)
-    c=contour(alog10(pwr_c_percent),r,curc/40*1e3,c_value=levels,c_color=colors,rgb_table=3,xRange=[0.0,.08],$
+            layout=[4,1,1],/fill)
+    c=contour(alog10(pwr_i_percent),r,y,c_value=levels,c_color=colors,rgb_table=3,xRange=[0.0,.08],$
+            xtitle='r [m]', ytitle='Coil Current [A]', title='Deposited Power (i)', layout=[4,1,2], /current)
+    c=contour(alog10(pwr_c_percent),r,y,c_value=levels,c_color=colors,rgb_table=3,xRange=[0.0,.08],$
             xtitle='r [m]', ytitle='Coil Current [A]', $
             title='Log10(Deposited Power) (e-i), Max Value: '+string(max(pwr_c_percent),format='(f4.1)')+'%', $
-            layout=[3,1,3], /current,/fill)
+            layout=[4,1,3], /current,/fill)
+    p=plot( 100-total(pwr_e_percent+pwr_i_percent+pwr_c_percent,1), y, layout=[4,1,4], /current, $
+           title='Reflected Power',xRange=[0,100] ) 
 stop
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  

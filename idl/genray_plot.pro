@@ -203,11 +203,22 @@ pro genray_plot
     pow_i_percent = total(gr.spwr_rz_i,2) * 1e-7 / 1e3 / launchedPower_kW * 100
     pow_c_percent = total(gr.spwr_rz_cl,2) * 1e-7 / 1e3 / launchedPower_kW * 100
 
-    p=plot(gr.pwr_r,pow_e_percent,$
-            title='Absorped Power Percentage', $
-            yTitle = 'Percentage Absorbed Power', xTitle='r [m]',thick=2, color='b')
-    p=plot(gr.pwr_r,pow_i_percent,color='r',/over,thick=2)
-    p=plot(gr.pwr_r,pow_c_percent,/over,thick=2)
+    totalAbsorbedPower_e = total(pow_e_percent) 
+    totalAbsorbedPower_i = total(pow_i_percent) 
+    totalAbsorbedPower_c = total(pow_c_percent) 
+
+    totalAbsorbedPower = totalAbsorbedPower_e + totalAbsorbedPower_i + totalAbsorbedPower_c  
+    totalReflectedPower = 100-totalAbsorbedPower
+    nL = string(10B)
+    p=plot(gr.pwr_r,total(pow_e_percent,/cum),$
+            title='Absorped Power: '+string(totalAbsorbedPower,format='(f4.1)')+'%, ' $
+            +'Reflected Power: '+string(totalReflectedPower,format='(f4.1)')+'%'+nL+nL $
+            +' (e: '+string(totalAbsorbedPower_e,format='(f4.1)')+'%, ' $
+            +' i: '+string(totalAbsorbedPower_i,format='(f4.1)')+'%, ' $
+            +' c: '+string(totalAbsorbedPower_c,format='(f4.1)')+'%)', $
+            yTitle = 'Absorbed Power', xTitle='r [m]',thick=2, color='b')
+    p=plot(gr.pwr_r,total(pow_i_percent,/cum),color='r',/over,thick=2)
+    p=plot(gr.pwr_r,total(pow_c_percent,/cum),/over,thick=2)
     thisDensity = interpol( gr.dens_xy[*,n_elements(gr.x)/2]/max(gr.dens_xy[*,n_elements(gr.x)/2])*100, gr.x, gr.pwr_r )
     pp=plot(gr.pwr_r,thisDensity,/over)
 stop
