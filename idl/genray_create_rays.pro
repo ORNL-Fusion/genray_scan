@@ -107,7 +107,7 @@ if beam eq 1 then begin
     txt = [txt, ['alfast=', string(alp)] ] 
     txt = [txt, ['alpha1=', string(pow*0)] ]
     txt = [txt, ['alpha2=', string(pow*0)] ]
-stop
+
 endif
 
 return, txt

@@ -7,9 +7,9 @@ pro genray_scan, runGENRAY = _runGENRAY
     freq = 28e9
     wrf = 2*!pi*freq
     
-    T_eV = 20.0
+    T_eV = 2.0
 
-	templateDir = 'template3'    	
+	templateDir = 'template'    	
     genrayBinary = expand_path( '~/code/genray-c/genray-c_160826.1/xgenray' )
     ;genrayBinary = './rungenray.sh' 
 
@@ -25,9 +25,9 @@ pro genray_scan, runGENRAY = _runGENRAY
     xOffSet = 0.10
     zOffSet = -0.02
     angle_deg = 20 
-    width_m = 0.02
-    spread_deg_x = -15.0
-    spread_deg_z = 0.0
+    width_m = 0.03
+    spread_deg_x = 3.0
+    spread_deg_z = 3.0
     rayDensity = 7
 
     params = {$
@@ -91,12 +91,6 @@ pro genray_scan, runGENRAY = _runGENRAY
 
             genray_set_params, current = curc[c], rayTxt = rayTxt, /density, T_eV = T_eV
 
-            ;genray_set_params, rayTxt = rayTxt
-
-            ;genray_set_params, /density
-
-            ;genray_set_params, T_eV = T_eV
-
         endif else begin
             print, 'Parameters left alone'
         endelse
@@ -107,7 +101,12 @@ pro genray_scan, runGENRAY = _runGENRAY
         if runGENRAY then begin
         if file_test( 'genray.nc') eq 0 then begin
             print, 'Updating launch script'
-            launchScript = [ launchScript, 'cd '+thisDir, genrayBinary+' > ../genray.log.'+thisDir+' &', 'cd ..' ]
+            thisBinary = 'xgenray.'+thisDir
+            launchScript = [ launchScript, $
+                    'cd '+thisDir, $
+                    'cp '+genrayBinary+' '+thisBinary, $ 
+                    './'+thisBinary+' > ../genray.log.'+thisDir+' &', $
+                    'cd ..' ]
             ++nJobsToRun
         endif else begin
             print, 'Nothing to do.'
@@ -119,7 +118,7 @@ pro genray_scan, runGENRAY = _runGENRAY
 
     endfor
 
-    ; Run all genray runs
+    ; Run all genray runs via launchScript
 
     fileName = 'launchAllRuns.sh'
     nLines = n_elements(launchScript)
