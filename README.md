@@ -1,5 +1,12 @@
 # genray_scan
 ## Instructions
+First add the `$genray_scan/idl` directory to your IDL path. Likely something like
+
+```
+!PATH=expand_path("+~/code/genray_scan/idl/:<IDL_DEFAULT>")
+```
+in whatever file the `IDL_STARTUP` environment variable points to.
+
 ```
 mkdir rundir
 cd rundir
