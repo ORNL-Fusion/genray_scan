@@ -38,17 +38,25 @@ pro genray_scan, runGENRAY = _runGENRAY
         ; Stage run
 
         thisDir = 'run'+string(run,format='(i3.3)')
+        print, thisDir
 
+        setParms = 0
         if runGENRAY then begin
+        if file_test(thisDir,/directory) eq 0 
+
             file_delete, thisDir, /recursive, /allow_nonexistent
             file_copy, templateDir, thisDir, /recursive, /overwrite
+            setParams = 1
+
+        endif
         endif
         cd, thisDir
 
         ; Update run parameters 
 
         if runGENRAY then begin
-
+        if setParams then begin
+            
             genray_set_params, current = curc[c]
 
             rayTxt = genray_create_rays( xOffSet=xOffSet, zOffSet=zOffSet, $
@@ -62,14 +70,18 @@ pro genray_scan, runGENRAY = _runGENRAY
             genray_set_params, T_eV = T_eV
 
         endif
+        endif
 
         ; Run genray
 
         if runGENRAY then begin
-            print, thisDir
+        if file_test( 'genray.nc') eq 0 then begin
             print, 'Running GENRAY ...'
             spawn, genrayBinary+' > genray.log', stdOut, stdErr
             print, 'DONE'
+        endif else begin
+            print, 'Nothing to do.'
+        endelse
         endif
 
         ; Get ouput
