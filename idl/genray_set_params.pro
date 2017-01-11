@@ -1,4 +1,4 @@
-pro genray_set_params, current = current, rayTxt = rayTxt, density = density
+pro genray_set_params, current = current, rayTxt = rayTxt, density = density, T_eV = T_eV 
 
     fileName = 'genray.in'
     backupFileName = 'genray.in.template'
@@ -19,17 +19,16 @@ pro genray_set_params, current = current, rayTxt = rayTxt, density = density
 
     ; Template ray block is from line 1119:1128
 
-    aboveRays = data[0:1118]
-    rayBlock = data[1119:1178]
-    belowRays = data[1179:-1] 
-
+    aboveRays = data[0:1119]
+    rayBlock = data[1120:1128]
+    belowRays = data[1129:-1] 
 
     ; Overwrite coil current
     ; ----------------------
 
     if keyword_set(current) then begin 
 
-        lineNo = 179 
+        lineNo = 180 
 
         print, 'UPDATING CURRENTS BLOCK'
         cStr = string( current, format='(i3.3)')
@@ -50,17 +49,16 @@ pro genray_set_params, current = current, rayTxt = rayTxt, density = density
 
     endif
 
+    template_wall_rmax = 0.12  
 
     ; Overwrite the density profile
     ; -----------------------------
 
     if keyword_set(density) then begin
 
-        densStart = 93 
+        densStart = 143 ; Within the belowRays block 
 
         nDens = 64
-
-        template_wall_rmax = 0.12  
 
         floor_ = 1e17
         mag = 9e18
@@ -79,6 +77,29 @@ pro genray_set_params, current = current, rayTxt = rayTxt, density = density
         endfor
 
         belowRays[densStart:densStart+nDens-1] = densBlock
+
+    endif    
+
+
+    ; Overwrite the Temp [keV] profile
+    ; -----------------------------
+
+    if keyword_set(T_eV) then begin
+
+        tempStart = 237 ; Within the belowRays block 
+
+        nTemp = 64
+
+        template_wall_rmax = 0.12  
+
+        T = fltArr(nTemp) + T_eV * 1e-3
+
+        tempBlock = 'prof = '+string(T[0])
+        for i=1,nTemp-1 do begin
+            tempBlock = [ tempBlock, string(T[i]) ]
+        endfor
+
+        belowRays[tempStart:tempStart+nTemp-1] = tempBlock
 
     endif    
 

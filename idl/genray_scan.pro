@@ -7,9 +7,11 @@ pro genray_scan, runGENRAY = _runGENRAY
     freq = 28e9
     t_eV = 4.0
     wrf = 2*!pi*freq
+    
+    T_eV = 10.0
 
-	templateDir = 'template2'    	
-    genrayBinary = expand_path( '~/code/genray-c_MOD0716/xgenray' )
+	templateDir = 'template3'    	
+    genrayBinary = expand_path( '~/code/genray-c/genray-c_160826.1/xgenray' )
 
     nC = 25
     curMin = 175
@@ -57,13 +59,16 @@ pro genray_scan, runGENRAY = _runGENRAY
 
             genray_set_params, /density
 
+            genray_set_params, T_eV = T_eV
+
         endif
 
         ; Run genray
 
         if runGENRAY then begin
+            print, thisDir
             print, 'Running GENRAY ...'
-            spawn, genrayBinary, stdOut, stdErr
+            spawn, genrayBinary+' > genray.log', stdOut, stdErr
             print, 'DONE'
         endif
 
@@ -71,17 +76,19 @@ pro genray_scan, runGENRAY = _runGENRAY
 
         thisGR = genray_read_output()
 
-        if size(pwr_e,/type) eq 0 then begin
+        if size(pwr_e_percent,/type) eq 0 then begin
             nRPwr = n_elements(thisGR.spwr_rz_e[*,0])
             nRays = n_elements(thisGR.transm_ox)
-            pwr_e = fltArr(nRPwr,nC)
-            pwr_i = fltArr(nRPwr,nC)
-            pwr_c = fltArr(nRPwr,nC)
+            pwr_e_percent = fltArr(nRPwr,nC)
+            pwr_i_percent = fltArr(nRPwr,nC)
+            pwr_c_percent = fltArr(nRPwr,nC)
         endif
-   
-        pwr_e[*,run] = total(thisGR.spwr_rz_e,2)
-        pwr_i[*,run] = total(thisGR.spwr_rz_i,2)
-        pwr_c[*,run] = total(thisGR.spwr_rz_cl,2)
+
+        launchedPower_kW = total( thisgr.delpwr[0,*] ) * 1e-7 / 1e3; covert from erg/s to J/s=W to kW
+
+        pwr_e_percent[*,run] = total(thisgr.spwr_rz_e,2) * 1e-7 / 1e3 / launchedPower_kW * 100 
+        pwr_i_percent[*,run] = total(thisgr.spwr_rz_i,2) * 1e-7 / 1e3 / launchedPower_kW * 100
+        pwr_c_percent[*,run] = total(thisgr.spwr_rz_cl,2) * 1e-7 / 1e3 / launchedPower_kW * 100
 
         cd, rootDir
         ++run
@@ -91,17 +98,22 @@ pro genray_scan, runGENRAY = _runGENRAY
     r = thisGR.pwr_r
     z = thisGR.pwr_z
 
-    maxLevel = 1.5e11
-    scaling = 2
+    maxLevel = 5.5e11
+    scaling = 1
 
-    nLevs = 20
-    levelsA = (fIndGen(nLevs)/(nLevs-1))
-    levels = levelsA^scaling
-    levels = levels/max(levels)*maxLevel
-    colors = 255-(bytScl(levelsA,top=254)+1)
+    levels = [-4,-3,-2,-1,0,1,2] 
+    colors = 255-bytscl(levels,top=244)
 
-    c=contour(pwr_e,r,curc,c_value=levels,c_color=colors,/fill,rgb_table=3,xRange=[0.0,.08],$
-            xtitle='r [m]', ytitle='Coil Current [A]', title='(Unmapped)')
+    c=contour(alog10(pwr_e_percent),r,curc/40*1e3,c_value=levels,c_color=colors,rgb_table=3,xRange=[0.0,.08],$
+            xtitle='r [m]', ytitle='Coil Current [A]', $
+            title='Log10(Deposited Power) (e), Max Value: '+string(max(pwr_e_percent),format='(f4.1)')+'%', $
+            layout=[3,1,1],/fill)
+    c=contour(alog10(pwr_i_percent),r,curc/40*1e3,c_value=levels,c_color=colors,rgb_table=3,xRange=[0.0,.08],$
+            xtitle='r [m]', ytitle='Coil Current [A]', title='Deposited Power (i)', layout=[3,1,2], /current)
+    c=contour(alog10(pwr_c_percent),r,curc/40*1e3,c_value=levels,c_color=colors,rgb_table=3,xRange=[0.0,.08],$
+            xtitle='r [m]', ytitle='Coil Current [A]', $
+            title='Log10(Deposited Power) (e-i), Max Value: '+string(max(pwr_c_percent),format='(f4.1)')+'%', $
+            layout=[3,1,3], /current,/fill)
 stop
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
  

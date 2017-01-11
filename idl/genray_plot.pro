@@ -198,12 +198,17 @@ pro genray_plot
     c = contour(transpose(gr.spwr_rz_i), gr.pwr_z, gr.pwr_r, layout=[1,3,2],/current,/fill,title='power absorped (i)')
     c = contour(transpose(gr.spwr_rz_cl), gr.pwr_z, gr.pwr_r, layout=[1,3,3],/current,/fill,title='power absorped (cl)')
 
-    scaleToDensFac = 5e7
-    p=plot(gr.pwr_r,total(gr.spwr_rz_e,2)*scaleToDensFac,title='Absorped Power',$
-        xTitle='r [m]',thick=2, color='b')
-    p=plot(gr.pwr_r,total(gr.spwr_rz_i,2)*scaleToDensFac,color='r',/over,thick=2)
-    p=plot(gr.pwr_r,total(gr.spwr_rz_cl,2)*scaleToDensFac,/over,thick=2)
-    thisDensity = interpol( gr.dens_xy[*,n_elements(gr.x)/2], gr.x, gr.pwr_r )
+    launchedPower_kW = total( gr.delpwr[0,*] ) * 1e-7 / 1e3; covert from erg/s to J/s=W to kW
+    pow_e_percent = total(gr.spwr_rz_e,2) * 1e-7 / 1e3 / launchedPower_kW * 100 
+    pow_i_percent = total(gr.spwr_rz_i,2) * 1e-7 / 1e3 / launchedPower_kW * 100
+    pow_c_percent = total(gr.spwr_rz_cl,2) * 1e-7 / 1e3 / launchedPower_kW * 100
+
+    p=plot(gr.pwr_r,pow_e_percent,$
+            title='Absorped Power Percentage', $
+            yTitle = 'Percentage Absorbed Power', xTitle='r [m]',thick=2, color='b')
+    p=plot(gr.pwr_r,pow_i_percent,color='r',/over,thick=2)
+    p=plot(gr.pwr_r,pow_c_percent,/over,thick=2)
+    thisDensity = interpol( gr.dens_xy[*,n_elements(gr.x)/2]/max(gr.dens_xy[*,n_elements(gr.x)/2])*100, gr.x, gr.pwr_r )
     pp=plot(gr.pwr_r,thisDensity,/over)
 stop
 end
