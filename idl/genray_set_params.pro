@@ -61,10 +61,15 @@ pro genray_set_params, current = current, rayTxt = rayTxt, density = density, T_
 
         nDens = 64
 
-        floor_ = 1e17
-        mag = 9e18
-        offset = 3.2 ; cm
-        width = 0.38 ; cm
+        floor_ = density.floor_
+        mag = density.mag 
+        offset = density.offset 
+        width = density.width 
+
+        ;floor_ = 1e17
+        ;mag = 9e18
+        ;offset = 3.2 ; cm
+        ;width = 0.38 ; cm
         
         xMin = 0
         xMax = template_wall_rmax
@@ -78,7 +83,7 @@ pro genray_set_params, current = current, rayTxt = rayTxt, density = density, T_
         endfor
 
         belowRays[densStart:densStart+nDens-1] = densBlock
-stop
+
     endif    
 
 
