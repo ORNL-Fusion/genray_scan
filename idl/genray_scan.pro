@@ -11,7 +11,8 @@ pro genray_scan, runGENRAY = _runGENRAY
     T_eV = 10.0
 
 	templateDir = 'template3'    	
-    genrayBinary = expand_path( '~/code/genray-c/genray-c_160826.1/xgenray' )
+    ;genrayBinary = expand_path( '~/code/genray-c/genray-c_160826.1/xgenray' )
+    genrayBinary = './rungenray.sh' 
 
     nC = 25
     curMin = 175
@@ -26,7 +27,7 @@ pro genray_scan, runGENRAY = _runGENRAY
     zOffSet = -0.02
     angle_deg = 20 
     width_m = 0.02
-    spread_deg = 1.0
+    spread_deg = -5.0
     rayDensity = 5
 
     run = 0
@@ -40,15 +41,17 @@ pro genray_scan, runGENRAY = _runGENRAY
         thisDir = 'run'+string(run,format='(i3.3)')
         print, thisDir
 
-        setParms = 0
+        setParams = 0
         if runGENRAY then begin
-        if file_test(thisDir,/directory) eq 0 
+        if file_test(thisDir,/directory) eq 0 then begin
 
             file_delete, thisDir, /recursive, /allow_nonexistent
             file_copy, templateDir, thisDir, /recursive, /overwrite
             setParams = 1
 
-        endif
+        endif else begin
+            print, 'Directory exists, skipping'
+        endelse
         endif
         cd, thisDir
 
@@ -69,7 +72,9 @@ pro genray_scan, runGENRAY = _runGENRAY
 
             genray_set_params, T_eV = T_eV
 
-        endif
+        endif else begin
+            print, 'Parameters left alone'
+        endelse
         endif
 
         ; Run genray
@@ -77,7 +82,7 @@ pro genray_scan, runGENRAY = _runGENRAY
         if runGENRAY then begin
         if file_test( 'genray.nc') eq 0 then begin
             print, 'Running GENRAY ...'
-            spawn, genrayBinary+' > genray.log', stdOut, stdErr
+            spawn, genrayBinary, stdOut, stdErr
             print, 'DONE'
         endif else begin
             print, 'Nothing to do.'
