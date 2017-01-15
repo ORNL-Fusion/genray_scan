@@ -32,8 +32,8 @@ pro genray_set_params, current = current, rayTxt = rayTxt, density = density, T_
 
         print, 'UPDATING CURRENTS BLOCK'
         cStr = string( current, format='(i3.3)')
-        cStrMod = string( current+1, format='(i3.3)')
-        newStr =  ' curc= 0.d3,  '+cStrMod+'.d3,  '+cStr+'.d3,  '+cStr+'.d3'
+        ;cStrMod = string( current+1, format='(i3.3)')
+        newStr =  ' curc= 0.d3,  '+cStr+'.d3,  '+cStr+'.d3,  '+cStr+'.d3'
         aboveRays[lineNo] = newStr
 
     endif

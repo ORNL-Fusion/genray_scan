@@ -10,8 +10,8 @@ pro genray_plot
     g_z0 = 2.6
     radius = 0.06
 
-	nX = 64 
-    nY = 64 
+	nX = 128 
+    nY = 128 
 	nZ = 128 
 
 	xMin = -radius*2
@@ -97,7 +97,7 @@ pro genray_plot
     nPar_crit = (wce/wrf) / (1+wce/wrf)
     kPar_crit = nPar_crit*wrf/_c
 
-    DB_kPar = 10000.0
+    DB_kPar = 5000.0
     DB_nPar = DB_kPar*_c/wrf
 
     vTh = sqrt(2*teUse*_e/_me)
@@ -108,9 +108,10 @@ pro genray_plot
     yRange = [xMin,xMax]
 
     layout=[3,2]
-    levels = 10.0^[15,16,17,18,19,20]
+    levels = 10.0^[17.1,18,19,20]
     colors = 100-bytscl(alog10(levels)-min(alog10(levels)))/3.+150
-    c=contour(dens_xz,zUse,xUse,/fill,c_value=levels,rgb_indices=colors,rgb_table=3,layout=[layout,1],xrange=xrange,yRange=yrange)
+    c=contour(dens_xz,zUse,xUse,/fill,c_value=levels,rgb_indices=colors,$
+            rgb_table=3,layout=[layout,1],xrange=xrange,yRange=yrange)
     c=contour(wrf/wce,zUse,xUse,c_value=[1,2,3,4,5],/over, rgb_table=0,c_color=0,c_label_show=1)
     c=contour(wrf/wUH,zUse,xUse,c_value=[1],/over, rgb_table=7,c_color=[150],c_thick=2)
 
@@ -130,25 +131,23 @@ pro genray_plot
     c=contour(kPar_crit,zUse,xUse,c_value=[0,10,50,100,200,300,400],/over, rgb_table=0,c_color=0,c_thick=1,c_label_show=1)
     c=contour(P,zUse,xUse,c_value=[0],/over, rgb_table=7,c_color=[150],c_thick=2)
 
-    ;v=vector(br2d_numeric,bz2d_numeric,xUse,zUse,/auto_subsample,/auto_color,/auto_range,xrange=[rMin,rMax],yRange=[zMin,zMax])
-
+    ; This is the single plot
+    ; -----------------------
     c=contour(dens_xz,zUse,xUse,n_lev=15,c_value=10d0^[15,16,17,18,19,20],c_color=0,c_label_show=1,xrange=xrange,yRange=yrange)
     pp=plot(xUse,dens_xz[*,nX/2],/ylog)
     pp=plot(xUse,dens_xz[*,nX/2])
-
     c=contour(dens_xz,zUse,xUse,/fill,c_value=levels,rgb_indices=colors,rgb_table=3,xrange=xrange,yRange=yrange)
-
-    c=contour(transpose(alog10(gr.pwr_e)),gr.pwr_z,gr.pwr_r,/over)
+    c=contour(transpose(alog10(gr.spwr_rz_e)),gr.pwr_z,gr.pwr_r,/over)
 
     kLevels = 10^fIndGen(5)
     kColors = bytScl(kLevels,top=254)+1
     for ray=0,nRays-1 do begin
-        pp=plot(gr.ray_z[0:gr.nrayelt[ray]-1,ray],gr.ray_x[0:gr.nrayelt[ray]-1,ray],$
+        thisRay_r = sqrt( (gr.ray_x[0:gr.nrayelt[ray]-1,ray])^2 + (gr.ray_y[0:gr.nrayelt[ray]-1,ray])^2 )
+        pp=plot(gr.ray_z[0:gr.nrayelt[ray]-1,ray], thisRay_r,$
                 /over,xrange=xrange,yRange=yrange,$
                 vert_colors=255-(bytSCl(alog10(((abs(gr.wkPar[0:gr.nrayelt[ray]-1,ray]))>100)<10.^5),top=254,min=2,max=5)+1),$
                 rgb_table=1)
     endfor
-
     c=contour(L,zUse,xUse,c_value=[0],/over, rgb_table=0,c_color=0,c_thick=2)
     c=contour(R,zUse,xUse,c_value=[0],/over, rgb_table=1,c_color=[150],c_thick=2)
     cp=contour(P,zUse,xUse,c_value=[0],/over, rgb_table=7,c_color=[150],c_thick=2)
@@ -163,14 +162,46 @@ pro genray_plot
         c=contour(wrf/wceDB_p,zUse,xUse,c_value=[1],/over, rgb_table=0,c_color=0,c_label_show=0)
     endfor     
 
-    
+    ; --------------------------
+
+    ; This is the single plot
+    ; -----------------------
+    c=contour(dens_xz,zUse,xUse,/nodata,/fill,c_value=levels,rgb_indices=colors,rgb_table=3,xrange=xrange,yRange=yrange)
+
+    _levels = [-4,-3,-2,-1,0,1,2] 
+    _colors = 255-bytscl(_levels,top=244)
+ 
+    c=contour(transpose(alog10(gr.spwr_rz_e)),gr.pwr_z,gr.pwr_r,/over,/fill,c_value=_levels,c_color=_colors,rgb_table=3)
+
+    kLevels = 10^fIndGen(5)
+    kColors = bytScl(kLevels,top=254)+1
+    for ray=0,nRays-1 do begin
+        thisRay_r = sqrt( (gr.ray_x[0:gr.nrayelt[ray]-1,ray])^2 + (gr.ray_y[0:gr.nrayelt[ray]-1,ray])^2 )
+        pp=plot(gr.ray_z[0:gr.nrayelt[ray]-1,ray], thisRay_r,$
+                /over,xrange=xrange,yRange=yrange,$
+                vert_colors=255-(bytSCl(alog10(((abs(gr.wkPar[0:gr.nrayelt[ray]-1,ray]))>100)<10.^5),top=254,min=2,max=5)+1),$
+                rgb_table=1)
+    endfor
+    c=contour(L,zUse,xUse,c_value=[0],/over, rgb_table=0,c_color=0,c_thick=2)
+    c=contour(R,zUse,xUse,c_value=[0],/over, rgb_table=1,c_color=[150],c_thick=2)
+    cp=contour(P,zUse,xUse,c_value=[0],/over, rgb_table=7,c_color=[150],c_thick=2)
+    contour, p, zUse, xUse, levels=[0],path_xy=cp_path, /path_data_coords
+    c=contour(wrf/wUH,zUse,xUse,c_value=[1],/over, rgb_table=7,c_color=[254],c_thick=2)
+    c=contour(wrf/wce,zUse,xUse,c_value=[1,2,3,4,5,6,7],/over, rgb_table=0,c_color=0,c_label_show=1,c_thick=2)
+
+    for harm=1,6 do begin 
+        wceDB_m = harm*wce/(1.0-3*DB_nPar*vTh/_c)
+        wceDB_p = harm*wce/(1.0+3*DB_nPar*vTh/_c)
+        c=contour(wrf/wceDB_m,zUse,xUse,c_value=[1],/over, rgb_table=0,c_color=0,c_label_show=0)
+        c=contour(wrf/wceDB_p,zUse,xUse,c_value=[1],/over, rgb_table=0,c_color=0,c_label_show=0)
+    endfor     
+
+    ; --------------------------
+
+
     iix = ( sqrt(x3D^2+y3D^2) -xMinG)/(xMaxG-xMinG)*(nXG-1)
     iiz = ( z3D-zMinG)/(zMaxG-zMinG)*(nZG-1)
 
-    ;dens3D = interpolate(gr.dens_xz,iix,iiz)
-    ;v=volume(dens3D, volume_dimensions=[xmax-xmin,ymax-ymin,zmax-zmin], $
-    ;    volume_location=[xmin,ymin,zmin], opacity_table0=fIndGen(256)^2/(256.0^2)*255 )
- 
     range = [-1,1]*0.15 
     p=plot3d( (gr.ray_x[0,*])[*], (gr.ray_y[0,*])[*], (gr.ray_z[0,*])[*], $
         lineStyle='none', symbol='s', sym_size=1.0, $
@@ -221,5 +252,15 @@ pro genray_plot
     p=plot(gr.pwr_r,total(pow_c_percent,/cum),/over,thick=2)
     thisDensity = interpol( gr.dens_xy[*,n_elements(gr.x)/2]/max(gr.dens_xy[*,n_elements(gr.x)/2])*100, gr.x, gr.pwr_r )
     pp=plot(gr.pwr_r,thisDensity,/over)
+
+    ; Plot kPar 
+
+    p=plot( gr.wkpar[0:gr.nrayelt[0]-1,0], zTitle='kPar')
+    for n=1,n_elements(gr.ray_x[0,*])-1 do begin
+        p=plot( gr.wkpar[0:gr.nrayelt[n]-1,n], /over)
+    endfor
+
+   
+
 stop
 end

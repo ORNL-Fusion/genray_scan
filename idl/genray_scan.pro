@@ -12,7 +12,11 @@ pro genray_scan, runGENRAY = _runGENRAY
   
     ; Temp 
 
-    T_eV = 2.0
+    nT = 1 
+    tMin = 1.0
+    tMax = 20.0
+    T_eV_noscan = 6.0
+    if nT gt 1 then T_eV = fIndGen(nT)/(nT-1)*(tMax-tMin)+tMin else T_eV=[T_eV_noscan]
 
     ; Density
 
@@ -20,7 +24,7 @@ pro genray_scan, runGENRAY = _runGENRAY
     mag = 9e18
     offset = 3.2 ; cm
 
-    nW = 10
+    nW = 1
     wMin = 0.1
     wMax = 1.0
     width_noscan = 0.38 ; cm
@@ -28,28 +32,48 @@ pro genray_scan, runGENRAY = _runGENRAY
 
     ; Coil Currents
     
-    nC = 1 
-    curMin = 175
-    curMax = 285
-    cur_noscan = 220
+    nC = 48 
+    ;curMin = 175
+    ;curMax = 285
+    curMin = 220 
+    curMax = 240 
+    cur_noscan = 228
     if nC gt 1 then curc = fIndGen(nC)/(nC-1)*(curMax-curMin)+curMin else curc=[cur_noscan]
 
 	nC = n_elements(curc)
 
     ; Beam parameters
 
-    xOffSet = 0.10
-    zOffSet = -0.02
-    angle_deg = 20 
-    width_m = 0.03
-    spread_deg_x = 3.0
-    spread_deg_z = 3.0
+    g_0 = 2.65
+    xPivot = 0.234 
+    zPivot = 2.565-g_0
+    waveGuideLength = 0.15; 0.183
+
+    width_m = 0.06
+    spread_deg_z = 8.0
     rayDensity = 7
+    fwhm = 2.03*1e-2 
+
+    nSx = 1 
+    spreadxMin = -15.0
+    spreadxMax = +5.0
+    spread_deg_x_noscan = -15.0
+    if nSx gt 1 then spread_deg_x = fIndGen(nSx)/(nSx-1)*(spreadxMax-spreadxMin)+spreadxMin else spread_deg_x=[spread_deg_x_noscan]
+
+    nA = 1
+    angleMin = +20.0
+    angleMax = +30.0
+    ;angle_noscan = 25.0
+    angle_noscan = 24.5
+    if nA gt 1 then angle = fIndGen(nA)/(nA-1)*(angleMax-angleMin)+angleMin else angle=[angle_noscan]
+
+    xOffSet = xPivot - waveGuideLength * cos(-angle*!dtor)
+    zOffSet = zPivot - waveGuideLength * sin(-angle*!dtor) 
 
     params = {$
             xOffset:xOffset,$
             zOffset:zOffset,$
-            angle_deg:angle_deg,$
+            angle:angle,$
             width_m:width_m,$
             spread_deg_x:spread_deg_x,$
             spread_deg_z:spread_deg_z,$
@@ -74,6 +98,9 @@ pro genray_scan, runGENRAY = _runGENRAY
     thisDirAll = !null
     nJobsToRun = 0
 
+    for t=0,nT-1 do begin
+    for sx=0,nSx-1 do begin
+    for a=0,nA-1 do begin
     for w=0,nW-1 do begin
     for c=0,nC-1 do begin
 
@@ -101,14 +128,14 @@ pro genray_scan, runGENRAY = _runGENRAY
         if runGENRAY then begin
         if setParams then begin
 
-            rayTxt = genray_create_rays( xOffSet=xOffSet, zOffSet=zOffSet, $
-                angle_deg=angle_deg, width_m=width_m, $
-                spread_deg_x=spread_deg_x, spread_deg_z=spread_deg_z, $
-                rayDensity=rayDensity )  
+            rayTxt = genray_create_rays( xOffSet=xOffSet[a], zOffSet=zOffSet[a], $
+                angle_deg=angle[a], width_m=width_m, $
+                spread_deg_x=spread_deg_x[sx], spread_deg_z=spread_deg_z, $
+                rayDensity=rayDensity, fwhm=fwhm )  
 
             densityParams = { floor_:floor_, mag:mag, offset:offset, width:width[w]}
 
-            genray_set_params, current = curc[c], rayTxt = rayTxt, density = densityParams, T_eV = T_eV
+            genray_set_params, current = curc[c], rayTxt = rayTxt, density = densityParams, T_eV = T_eV[t]
 
         endif else begin
             print, 'Parameters left alone'
@@ -137,6 +164,9 @@ pro genray_scan, runGENRAY = _runGENRAY
 
     endfor
     endfor
+    endfor
+    endfor
+    endfor
 
     ; Run all genray runs via launchScript
 
@@ -162,6 +192,9 @@ pro genray_scan, runGENRAY = _runGENRAY
 
     run = 0
 
+    for t=0,nT-1 do begin
+    for sx=0,nSx-1 do begin
+    for a=0,nA-1 do begin
     for w=0,nW-1 do begin
     for c=0,nC-1 do begin
 
@@ -171,14 +204,14 @@ pro genray_scan, runGENRAY = _runGENRAY
 
         ; Get ouput
 
-        thisGR = genray_read_output()
+        thisGR = genray_read_output(status=status)
 
         if size(pwr_e_percent,/type) eq 0 then begin
             nRPwr = n_elements(thisGR.spwr_rz_e[*,0])
-            nRays = n_elements(thisGR.transm_ox)
-            pwr_e_percent = fltArr(nRPwr,max([nC,nW]))
-            pwr_i_percent = fltArr(nRPwr,max([nC,nW]))
-            pwr_c_percent = fltArr(nRPwr,max([nC,nW]))
+            ;nRays = n_elements(thisGR.transm_ox)
+            pwr_e_percent = fltArr(nRPwr,max([nC,nW,nA,nSx,nT]))
+            pwr_i_percent = fltArr(nRPwr,max([nC,nW,nA,nSx,nT]))
+            pwr_c_percent = fltArr(nRPwr,max([nC,nW,nA,nSx,nT]))
         endif
 
         launchedPower_kW = total( thisgr.delpwr[0,*] ) * 1e-7 / 1e3; covert from erg/s to J/s=W to kW
@@ -192,62 +225,87 @@ pro genray_scan, runGENRAY = _runGENRAY
 
     endfor
     endfor
+    endfor
+    endfor
+    endfor
 
-    r = thisGR.pwr_r
+    r = thisGR.pwr_r*1e2
     z = thisGR.pwr_z
+    iiGood = where(pwr_e_percent eq pwr_e_percent,iiGoodCnt)
+    dimensions=[900,300]*2
+    fs = 18 
+    xTitle='r [cm]'
+    xRange = [0,6]
 
-    ; Plot coil current scan
+    nL = string(10B)
+    levels = [-4,-3,-2,-1,0,1,2] 
+    colors = 255-bytscl(levels,top=244)
+    margin = [0.18,0.1,0.1,0.2]
 
-    if nC gt 1 then begin
-
-        levels = [-4,-3,-2,-1,0,1,2] 
-        colors = 255-bytscl(levels,top=244)
-
-        y = curc/40*1e3
-        c=contour(alog10(pwr_e_percent),r,y,c_value=levels,c_color=colors,rgb_table=3,xRange=[0.0,.08],$
-                xtitle='r [m]', ytitle='Coil Current [A]', $
-                title='Log10(Deposited Power) (e), Max Value: '+string(max(pwr_e_percent),format='(f4.1)')+'%', $
-                layout=[4,1,1],/fill)
-        c=contour(alog10(pwr_i_percent),r,y,c_value=levels,c_color=colors,rgb_table=3,xRange=[0.0,.08],$
-                xtitle='r [m]', ytitle='Coil Current [A]', title='Deposited Power (i)', layout=[4,1,2], /current)
-        c=contour(alog10(pwr_c_percent),r,y,c_value=levels,c_color=colors,rgb_table=3,xRange=[0.0,.08],$
-                xtitle='r [m]', ytitle='Coil Current [A]', $
-                title='Log10(Deposited Power) (e-i), Max Value: '+string(max(pwr_c_percent),format='(f4.1)')+'%', $
-                layout=[4,1,3], /current,/fill)
-        p=plot( 100-total(pwr_e_percent+pwr_i_percent+pwr_c_percent,1), y, layout=[4,1,4], /current, $
-               title='Reflected Power',xRange=[0,100] ) 
-
-    endif
-
-    ; Plot gradient scale length (width) scan
+    plotScan = 1
 
     if nW gt 1 then begin
-
-        levels = [-4,-3,-2,-1,0,1,2] 
-        colors = 255-bytscl(levels,top=244)
-
-        y = width 
-        yTitle = 'Density gradient scale length'
-        xTitle = 'r [m]'
-        c=contour(alog10(pwr_e_percent),r,y,c_value=levels,c_color=colors,rgb_table=3,xRange=[0.0,.08],$
-                xtitle=xTitle, ytitle=yTitle, $
-                title='Log10(Deposited Power) (e), Max Value: '+string(max(pwr_e_percent),format='(f4.1)')+'%', $
-                layout=[4,1,1],/fill)
-        c=contour(alog10(pwr_i_percent),r,y,c_value=levels,c_color=colors,rgb_table=3,xRange=[0.0,.08],$
-                xtitle=xTitle, ytitle=yTitle, title='Deposited Power (i)', layout=[4,1,2], /current)
-        c=contour(alog10(pwr_c_percent),r,y,c_value=levels,c_color=colors,rgb_table=3,xRange=[0.0,.08],$
-                xtitle=xTitle, ytitle=yTitle, $
-                title='Log10(Deposited Power) (e-i), Max Value: '+string(max(pwr_c_percent),format='(f4.1)')+'%', $
-                layout=[4,1,3], /current,/fill)
-        p=plot( 100-total(pwr_e_percent+pwr_i_percent+pwr_c_percent,1), y, layout=[4,1,4], /current, $
-               title='Reflected Power',xRange=[0,100] ) 
-
+        yTitle = 'Density gradient scale length [cm]'
+        y = width
     endif
 
+    if nC gt 1 then begin
+        yTitle = 'Coil Current [A]'
+        y = curc*1e3/40
+    endif
 
+    if nA gt 1 then begin
+        yTitle = 'Angle'
+        y = angle
+    endif
 
+    if nSx gt 1 then begin
+        yTitle = 'Beam Spread in x [deg]'
+        y = spread_deg_x 
+    endif
 
+    if nT gt 1 then begin
+        yTitle = 'Te [eV]'
+        y = T_eV 
+    endif
 
+    if plotScan then begin
+
+        c=contour(alog10(pwr_e_percent),r,y,c_value=levels,c_color=colors,rgb_table=3,xRange=xRange,$
+                xtitle=xTitle, ytitle=yTitle, $
+                title='Log10(Deposited Power) (e)'+nl+nl+'Max Value: '+string(max(pwr_e_percent[iiGood]),format='(f4.1)')+'%', $
+                layout=[3,1,1],/fill,dimensions=dimensions, font_size=fs, xMinor=0,margin=margin)
+        ;totale = total(pwr_e_percent,1)*xRange[1]/100.0 
+        ;p=plot(totale,y,xRange=xRange,/over,color='dodger blue',thick=4,transp=30)
+        ;ax=p.axes
+        ;ax[2].hide=1
+        ;ax[3].hide=1
+
+        ;c=contour(alog10(pwr_i_percent),r,y,c_value=levels,c_color=colors,rgb_table=3,xRange=xRange,$
+        ;        xtitle=xTitle, ytitle=yTitle, title='Deposited Power (i)', layout=[4,1,2], /current)
+
+        c=contour(alog10(pwr_c_percent),r,y,c_value=levels,c_color=colors,rgb_table=3,xRange=xRange,$
+                xtitle=xTitle, ytitle=yTitle, $
+                title='Log10(Deposited Power) (e-i)'+nl+nl+'Max Value: '+string(max(pwr_c_percent[iiGood]),format='(f4.1)')+'%', $
+                layout=[3,1,2], /current,/fill, font_size=fs, xMinor=0,margin=margin)
+        ;totalc = total(pwr_c_percent,1)*xRange[1]/100.0 
+        ;p=plot(totalc,y,xRange=xRange,/over,color='dodger blue',thick=4,transp=30)
+        ;ax=p.axes
+        ;ax[2].hide=1
+        ;ax[3].hide=1
+ 
+        p=plot( 100-total(pwr_e_percent+pwr_i_percent+pwr_c_percent,1), y, $
+                layout=[3,1,3], /current, $
+                title='Reflected Power',xRange=[0,100], $
+                xTitle='Reflected Power (%)', $
+                font_size=fs, thick=2, margin=margin) 
+        ax=p.axes
+        ax[2].hide=1
+        ax[3].hide=1
+
+        c.save, 'scan.png', resolution=300
+
+    endif
 
 
 

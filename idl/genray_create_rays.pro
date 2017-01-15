@@ -7,7 +7,8 @@ function genray_create_rays, $
     spread_deg_z = _spread_deg_z, $
     rayDensity = _rayDensity, $
     beam = _beam, $
-    scan = _scan 
+    scan = _scan, $
+    fwhm = _fwhm 
 
 	if keyword_set(_beam) then beam = _beam else beam = 1	
 	if keyword_set(_scan) then scan = _scan else scan = 0	
@@ -18,6 +19,7 @@ function genray_create_rays, $
 	if keyword_set(_spread_deg_x) then spread_deg_x = _spread_deg_x else spread_deg_x = 0
     if keyword_set(_spread_deg_z) then spread_deg_z = _spread_deg_z else spread_deg_z = 0
 	if keyword_set(_rayDensity) then rayDensity = _rayDensity else rayDensity = 3	
+	if keyword_set(_fwhm) then fwhm = _fwhm else fwhm = width_m / 2.0	
 
 if scan then begin
 
@@ -69,7 +71,9 @@ if beam eq 1 then begin
 
     ; Extract circular beam 
 
-    iiKeep = where( sqrt( c1_2d^2 + c2_2d^2 ) le width_m/2, iiKeepCnt )
+    r_2d = sqrt( c1_2d^2 + c2_2d^2 )
+
+    iiKeep = where( r_2d le width_m/2, iiKeepCnt )
 
     if iiKeepCnt gt 199 then begin
 
@@ -96,7 +100,10 @@ if beam eq 1 then begin
         sin ( atan( c1_2d[iiKeep], c2_2d[iiKeep] ) ) * spread_deg_z $ 
         * sqrt ( c1_2d[iiKeep]^2 + c2_2d[iiKeep]^2 ) / ( width_m / 2 )
 
-    pow = xArr*0 + 100e3 
+    ; Gaussian HE11 beam profile
+    c = fwhm / 2.35482 ; See https://en.wikipedia.org/wiki/Gaussian_function 
+    
+    pow = 100e3 * exp ( -r_2d[iiKeep]^2 / (2*c^2) )
 
     txt = ['ncone='+string(iiKeepCnt,format='(i3.3)') ]
     txt = [txt, ['powtot=', string(pow)] ]

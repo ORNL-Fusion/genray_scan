@@ -1,7 +1,25 @@
-function genray_read_output
+function genray_read_output, status=status
 
     @constants
 
+    catch, error_status
+
+    if error_status ne 0 then begin
+
+        print, 'ERROR: READ FAILED'
+        status = 1
+        catch, /cancel
+
+        empty_ = fltArr(120,240)/0 ; from genray source code parameters NRGrid, NZGrid
+
+        return, { $
+            spwr_rz_e : empty_, $
+            spwr_rz_i : empty_, $
+            spwr_rz_cl : empty_, $
+            delpwr : empty_ }
+
+    endif
+    
     genrayFileName = 'genray.nc' 
     cdfId = ncdf_open ( genrayFileName, /noWrite ) 
         nCdf_varGet, cdfId, 'freqcy', g_freqcy 
