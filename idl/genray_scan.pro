@@ -21,23 +21,22 @@ pro genray_scan, runGENRAY = _runGENRAY
     ; Density
 
     floor_ = 1e17
-    mag = 9e18
+    mag = 9e18*2
     offset = 3.2 ; cm
 
-    nW = 1
-    wMin = 0.1
+    nW = 1 
+    wMin = 0.05
     wMax = 1.0
     width_noscan = 0.38 ; cm
     if nW gt 1 then width = fIndGen(nW)/(nW-1)*(wMax-wMin)+wMin else width=[width_noscan]
 
     ; Coil Currents
     
-    nC = 48 
-    ;curMin = 175
-    ;curMax = 285
-    curMin = 220 
-    curMax = 240 
-    cur_noscan = 228
+    nC = 1 
+    curMin = 100
+    curMax = 285
+    cur_noscan = 228 ; 5700
+    cur_noscan = 160 ; 4000
     if nC gt 1 then curc = fIndGen(nC)/(nC-1)*(curMax-curMin)+curMin else curc=[cur_noscan]
 
 	nC = n_elements(curc)
@@ -60,11 +59,16 @@ pro genray_scan, runGENRAY = _runGENRAY
     spread_deg_x_noscan = -15.0
     if nSx gt 1 then spread_deg_x = fIndGen(nSx)/(nSx-1)*(spreadxMax-spreadxMin)+spreadxMin else spread_deg_x=[spread_deg_x_noscan]
 
-    nA = 1
-    angleMin = +20.0
-    angleMax = +30.0
-    ;angle_noscan = 25.0
-    angle_noscan = 24.5
+    nSz = 1 
+    spreadzMin = -15.0
+    spreadzMax = +8.0
+    spread_deg_z_noscan = -5.0
+    if nSz gt 1 then spread_deg_z = fIndGen(nSz)/(nSz-1)*(spreadzMax-spreadzMin)+spreadzMin else spread_deg_z=[spread_deg_z_noscan]
+
+    nA = 24 
+    angleMin = -37.0
+    angleMax = -30.0
+    angle_noscan = -34.0
     if nA gt 1 then angle = fIndGen(nA)/(nA-1)*(angleMax-angleMin)+angleMin else angle=[angle_noscan]
 
     xOffSet = xPivot - waveGuideLength * cos(-angle*!dtor)
@@ -100,6 +104,7 @@ pro genray_scan, runGENRAY = _runGENRAY
 
     for t=0,nT-1 do begin
     for sx=0,nSx-1 do begin
+    for sz=0,nSz-1 do begin
     for a=0,nA-1 do begin
     for w=0,nW-1 do begin
     for c=0,nC-1 do begin
@@ -130,7 +135,7 @@ pro genray_scan, runGENRAY = _runGENRAY
 
             rayTxt = genray_create_rays( xOffSet=xOffSet[a], zOffSet=zOffSet[a], $
                 angle_deg=angle[a], width_m=width_m, $
-                spread_deg_x=spread_deg_x[sx], spread_deg_z=spread_deg_z, $
+                spread_deg_x=spread_deg_x[sx], spread_deg_z=spread_deg_z[sz], $
                 rayDensity=rayDensity, fwhm=fwhm )  
 
             densityParams = { floor_:floor_, mag:mag, offset:offset, width:width[w]}
@@ -167,6 +172,7 @@ pro genray_scan, runGENRAY = _runGENRAY
     endfor
     endfor
     endfor
+    endfor
 
     ; Run all genray runs via launchScript
 
@@ -194,6 +200,7 @@ pro genray_scan, runGENRAY = _runGENRAY
 
     for t=0,nT-1 do begin
     for sx=0,nSx-1 do begin
+    for sz=0,nSz-1 do begin
     for a=0,nA-1 do begin
     for w=0,nW-1 do begin
     for c=0,nC-1 do begin
@@ -209,9 +216,9 @@ pro genray_scan, runGENRAY = _runGENRAY
         if size(pwr_e_percent,/type) eq 0 then begin
             nRPwr = n_elements(thisGR.spwr_rz_e[*,0])
             ;nRays = n_elements(thisGR.transm_ox)
-            pwr_e_percent = fltArr(nRPwr,max([nC,nW,nA,nSx,nT]))
-            pwr_i_percent = fltArr(nRPwr,max([nC,nW,nA,nSx,nT]))
-            pwr_c_percent = fltArr(nRPwr,max([nC,nW,nA,nSx,nT]))
+            pwr_e_percent = fltArr(nRPwr,max([nC,nW,nA,nSx,nSz,nT]))
+            pwr_i_percent = fltArr(nRPwr,max([nC,nW,nA,nSx,nSz,nT]))
+            pwr_c_percent = fltArr(nRPwr,max([nC,nW,nA,nSx,nSz,nT]))
         endif
 
         launchedPower_kW = total( thisgr.delpwr[0,*] ) * 1e-7 / 1e3; covert from erg/s to J/s=W to kW
@@ -223,6 +230,7 @@ pro genray_scan, runGENRAY = _runGENRAY
         cd, rootDir
         ++run
 
+    endfor
     endfor
     endfor
     endfor
@@ -262,6 +270,11 @@ pro genray_scan, runGENRAY = _runGENRAY
     if nSx gt 1 then begin
         yTitle = 'Beam Spread in x [deg]'
         y = spread_deg_x 
+    endif
+
+    if nSz gt 1 then begin
+        yTitle = 'Beam Spread in z [deg]'
+        y = spread_deg_z 
     endif
 
     if nT gt 1 then begin

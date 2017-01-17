@@ -4,7 +4,7 @@ pro genray_plot
 
     freq = 28d9
     wrf = 2*!pi*freq
-    teMPEX = 2.0 ; eV
+    teMPEX = 20.0 ; eV
 
     r0 = 0
     g_z0 = 2.6
@@ -97,19 +97,37 @@ pro genray_plot
     nPar_crit = (wce/wrf) / (1+wce/wrf)
     kPar_crit = nPar_crit*wrf/_c
 
-    DB_kPar = 5000.0
+    DB_kPar = 2000.0
     DB_nPar = DB_kPar*_c/wrf
 
     vTh = sqrt(2*teUse*_e/_me)
 
     rho_L = vTh / wce
 
+    launchedPower_kW = total( gr.delpwr[0,*] ) * 1e-7 / 1e3; covert from erg/s to J/s=W to kW
+
+    pow_e_percent_2D = gr.spwr_rz_e * 1e-7 / 1e3 / launchedPower_kW * 100 
+    pow_i_percent_2D = gr.spwr_rz_i * 1e-7 / 1e3 / launchedPower_kW * 100
+    pow_c_percent_2D = gr.spwr_rz_cl * 1e-7 / 1e3 / launchedPower_kW * 100
+
+    pow_e_percent = total(gr.spwr_rz_e,2) * 1e-7 / 1e3 / launchedPower_kW * 100 
+    pow_i_percent = total(gr.spwr_rz_i,2) * 1e-7 / 1e3 / launchedPower_kW * 100
+    pow_c_percent = total(gr.spwr_rz_cl,2) * 1e-7 / 1e3 / launchedPower_kW * 100
+
+    totalAbsorbedPower_e = total(pow_e_percent) 
+    totalAbsorbedPower_i = total(pow_i_percent) 
+    totalAbsorbedPower_c = total(pow_c_percent) 
+
+    totalAbsorbedPower = totalAbsorbedPower_e + totalAbsorbedPower_i + totalAbsorbedPower_c  
+    totalReflectedPower = 100-totalAbsorbedPower
+ 
     xRange = [zMin,zMax]
     yRange = [xMin,xMax]
 
     layout=[3,2]
     levels = 10.0^[17.1,18,19,20]
     colors = 100-bytscl(alog10(levels)-min(alog10(levels)))/3.+150
+
     c=contour(dens_xz,zUse,xUse,/fill,c_value=levels,rgb_indices=colors,$
             rgb_table=3,layout=[layout,1],xrange=xrange,yRange=yrange)
     c=contour(wrf/wce,zUse,xUse,c_value=[1,2,3,4,5],/over, rgb_table=0,c_color=0,c_label_show=1)
@@ -131,13 +149,20 @@ pro genray_plot
     c=contour(kPar_crit,zUse,xUse,c_value=[0,10,50,100,200,300,400],/over, rgb_table=0,c_color=0,c_thick=1,c_label_show=1)
     c=contour(P,zUse,xUse,c_value=[0],/over, rgb_table=7,c_color=[150],c_thick=2)
 
-    ; This is the single plot
-    ; -----------------------
     c=contour(dens_xz,zUse,xUse,n_lev=15,c_value=10d0^[15,16,17,18,19,20],c_color=0,c_label_show=1,xrange=xrange,yRange=yrange)
     pp=plot(xUse,dens_xz[*,nX/2],/ylog)
     pp=plot(xUse,dens_xz[*,nX/2])
-    c=contour(dens_xz,zUse,xUse,/fill,c_value=levels,rgb_indices=colors,rgb_table=3,xrange=xrange,yRange=yrange)
-    c=contour(transpose(alog10(gr.spwr_rz_e)),gr.pwr_z,gr.pwr_r,/over)
+
+
+    ; Single panel plot with density
+    ; ------------------------------
+
+    _fs = 18
+    _dim=[1500,800]
+
+    c=contour(dens_xz,zUse,xUse,/fill,c_value=levels,rgb_indices=colors,rgb_table=3,$
+            xrange=xrange,yRange=yrange,aspect_ratio=1,title='Ray Trajectories and Cutoffs',$
+            xTitle='z [m]', yTitle='r [m]',dim=_dim, font_size=_fs)
 
     kLevels = 10^fIndGen(5)
     kColors = bytScl(kLevels,top=254)+1
@@ -161,17 +186,25 @@ pro genray_plot
         c=contour(wrf/wceDB_m,zUse,xUse,c_value=[1],/over, rgb_table=0,c_color=0,c_label_show=0)
         c=contour(wrf/wceDB_p,zUse,xUse,c_value=[1],/over, rgb_table=0,c_color=0,c_label_show=0)
     endfor     
+
+    c.save, 'density-cutoffs.png', resolution=300
 
     ; --------------------------
 
-    ; This is the single plot
-    ; -----------------------
-    c=contour(dens_xz,zUse,xUse,/nodata,/fill,c_value=levels,rgb_indices=colors,rgb_table=3,xrange=xrange,yRange=yrange)
 
-    _levels = [-4,-3,-2,-1,0,1,2] 
+    ; Single panel plot with no density
+    ; ---------------------------------
+    cB=contour(dens_xz,zUse,xUse,/nodata,/fill,c_value=levels,rgb_indices=colors,$
+            rgb_table=3,xrange=xrange,yRange=yrange,aspect_ratio=1,title='log10( Power Absorbtion (e) )',$
+            xTitle='z [m]', yTitle='r [m]',dim=_dim, font_size=_fs)
+
+    _nL = 30
+    _min = -15
+    _max = 2
+    _levels = fIndGen(_nL)/(_nL-1)*(_max-_min)+_min
     _colors = 255-bytscl(_levels,top=244)
  
-    c=contour(transpose(alog10(gr.spwr_rz_e)),gr.pwr_z,gr.pwr_r,/over,/fill,c_value=_levels,c_color=_colors,rgb_table=3)
+    cB=contour(transpose(alog10(pow_e_percent_2D)),gr.pwr_z,gr.pwr_r,/over,/fill,c_value=_levels,c_color=_colors,rgb_table=3)
 
     kLevels = 10^fIndGen(5)
     kColors = bytScl(kLevels,top=254)+1
@@ -180,10 +213,10 @@ pro genray_plot
         pp=plot(gr.ray_z[0:gr.nrayelt[ray]-1,ray], thisRay_r,$
                 /over,xrange=xrange,yRange=yrange,$
                 vert_colors=255-(bytSCl(alog10(((abs(gr.wkPar[0:gr.nrayelt[ray]-1,ray]))>100)<10.^5),top=254,min=2,max=5)+1),$
-                rgb_table=1)
+                rgb_table=1,thick=2)
     endfor
-    c=contour(L,zUse,xUse,c_value=[0],/over, rgb_table=0,c_color=0,c_thick=2)
-    c=contour(R,zUse,xUse,c_value=[0],/over, rgb_table=1,c_color=[150],c_thick=2)
+    cB=contour(L,zUse,xUse,c_value=[0],/over, rgb_table=0,c_color=0,c_thick=2)
+    cB=contour(R,zUse,xUse,c_value=[0],/over, rgb_table=1,c_color=[150],c_thick=2)
     cp=contour(P,zUse,xUse,c_value=[0],/over, rgb_table=7,c_color=[150],c_thick=2)
     contour, p, zUse, xUse, levels=[0],path_xy=cp_path, /path_data_coords
     c=contour(wrf/wUH,zUse,xUse,c_value=[1],/over, rgb_table=7,c_color=[254],c_thick=2)
@@ -195,6 +228,8 @@ pro genray_plot
         c=contour(wrf/wceDB_m,zUse,xUse,c_value=[1],/over, rgb_table=0,c_color=0,c_label_show=0)
         c=contour(wrf/wceDB_p,zUse,xUse,c_value=[1],/over, rgb_table=0,c_color=0,c_label_show=0)
     endfor     
+
+    cB.save, 'ray-absorbtion.png', resolution=300
 
     ; --------------------------
 
@@ -229,17 +264,6 @@ pro genray_plot
     c = contour(transpose(gr.spwr_rz_i), gr.pwr_z, gr.pwr_r, layout=[1,3,2],/current,/fill,title='power absorped (i)')
     c = contour(transpose(gr.spwr_rz_cl), gr.pwr_z, gr.pwr_r, layout=[1,3,3],/current,/fill,title='power absorped (cl)')
 
-    launchedPower_kW = total( gr.delpwr[0,*] ) * 1e-7 / 1e3; covert from erg/s to J/s=W to kW
-    pow_e_percent = total(gr.spwr_rz_e,2) * 1e-7 / 1e3 / launchedPower_kW * 100 
-    pow_i_percent = total(gr.spwr_rz_i,2) * 1e-7 / 1e3 / launchedPower_kW * 100
-    pow_c_percent = total(gr.spwr_rz_cl,2) * 1e-7 / 1e3 / launchedPower_kW * 100
-
-    totalAbsorbedPower_e = total(pow_e_percent) 
-    totalAbsorbedPower_i = total(pow_i_percent) 
-    totalAbsorbedPower_c = total(pow_c_percent) 
-
-    totalAbsorbedPower = totalAbsorbedPower_e + totalAbsorbedPower_i + totalAbsorbedPower_c  
-    totalReflectedPower = 100-totalAbsorbedPower
     nL = string(10B)
     p=plot(gr.pwr_r,total(pow_e_percent,/cum),$
             title='Absorped Power: '+string(totalAbsorbedPower,format='(f4.1)')+'%, ' $

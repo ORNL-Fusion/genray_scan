@@ -2,3 +2,4 @@
 rm -r run*
 rm genray.log.*
 rm launch*
+rm *.png
