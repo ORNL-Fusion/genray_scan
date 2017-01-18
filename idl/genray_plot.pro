@@ -51,8 +51,11 @@ pro genray_plot
     rayN = 0 
     rN = gr.nrayelt[rayN]
 
+    ; Plot 0
+    ; ------
+
     layout = [2,2]
-    p=plot(gr.wkPer[0:rN-1,rayN],layout=[layout,1],/ylog,title='kPer,kPar')
+    p=plot(gr.wkPer[0:rN-1,rayN],layout=[layout,1],/ylog,title='kPer,kPar', /buffer)
     p=plot(gr.wkPar[0:rN-1,rayN],/over,color='r')
     p=plot(-gr.wkPar[0:rN-1,rayN],/over,color='b')
     p=plot(gr.vpr[0:rN-1,rayN],layout=[layout,2],title='vPhase_r',/current)
@@ -63,6 +66,8 @@ pro genray_plot
     p=plot(imaginary(gr.Ex[0:rN-1,rayN]),/over,color='b')
     p=plot(gr.Ez[0:rN-1,rayN],/over,thick=2,color='r')
     p=plot(imaginary(gr.Ez[0:rN-1,rayN]),/over,color='r')
+    
+    p.save, 'plot0.png', res=300
 
     nRays = n_elements(gr.ray_x[0,*])
 
@@ -128,8 +133,11 @@ pro genray_plot
     levels = 10.0^[17.1,18,19,20]
     colors = 100-bytscl(alog10(levels)-min(alog10(levels)))/3.+150
 
+    ; Plot 1
+    ; ------
+
     c=contour(dens_xz,zUse,xUse,/fill,c_value=levels,rgb_indices=colors,$
-            rgb_table=3,layout=[layout,1],xrange=xrange,yRange=yrange)
+            rgb_table=3,layout=[layout,1],xrange=xrange,yRange=yrange,/buffer)
     c=contour(wrf/wce,zUse,xUse,c_value=[1,2,3,4,5],/over, rgb_table=0,c_color=0,c_label_show=1)
     c=contour(wrf/wUH,zUse,xUse,c_value=[1],/over, rgb_table=7,c_color=[150],c_thick=2)
 
@@ -148,10 +156,15 @@ pro genray_plot
     c=contour(dens_xz,zUse,xUse,/fill,c_value=levels,rgb_indices=colors,rgb_table=3,layout=[layout,5],/current,xrange=xrange,yRange=yrange)
     c=contour(kPar_crit,zUse,xUse,c_value=[0,10,50,100,200,300,400],/over, rgb_table=0,c_color=0,c_thick=1,c_label_show=1)
     c=contour(P,zUse,xUse,c_value=[0],/over, rgb_table=7,c_color=[150],c_thick=2)
+    c.save, 'plot1.png', res=300
 
-    c=contour(dens_xz,zUse,xUse,n_lev=15,c_value=10d0^[15,16,17,18,19,20],c_color=0,c_label_show=1,xrange=xrange,yRange=yrange)
-    pp=plot(xUse,dens_xz[*,nX/2],/ylog)
-    pp=plot(xUse,dens_xz[*,nX/2])
+    c=contour(dens_xz,zUse,xUse,n_lev=15,c_value=10d0^[15,16,17,18,19,20],c_color=0,c_label_show=1,xrange=xrange,yRange=yrange,/buffer)
+    c.save, 'density-2d.png', res=300
+    pp=plot(xUse,dens_xz[*,nX/2],/ylog,/buffer)
+    pp.save, 'density-1d-log.png', res=300
+    pp=plot(xUse,dens_xz[*,nX/2],/buffer)
+    pp.save, 'density-1d.png', res=300
+
 
 
     ; Single panel plot with density
@@ -162,7 +175,7 @@ pro genray_plot
 
     c=contour(dens_xz,zUse,xUse,/fill,c_value=levels,rgb_indices=colors,rgb_table=3,$
             xrange=xrange,yRange=yrange,aspect_ratio=1,title='Ray Trajectories and Cutoffs',$
-            xTitle='z [m]', yTitle='r [m]',dim=_dim, font_size=_fs)
+            xTitle='z [m]', yTitle='r [m]',dim=_dim, font_size=_fs, /buffer)
 
     kLevels = 10^fIndGen(5)
     kColors = bytScl(kLevels,top=254)+1
@@ -196,7 +209,7 @@ pro genray_plot
     ; ---------------------------------
     cB=contour(dens_xz,zUse,xUse,/nodata,/fill,c_value=levels,rgb_indices=colors,$
             rgb_table=3,xrange=xrange,yRange=yrange,aspect_ratio=1,title='log10( Power Absorbtion (e) )',$
-            xTitle='z [m]', yTitle='r [m]',dim=_dim, font_size=_fs)
+            xTitle='z [m]', yTitle='r [m]',dim=_dim, font_size=_fs,/buffer)
 
     _nL = 30
     _min = -15
@@ -237,10 +250,13 @@ pro genray_plot
     iix = ( sqrt(x3D^2+y3D^2) -xMinG)/(xMaxG-xMinG)*(nXG-1)
     iiz = ( z3D-zMinG)/(zMaxG-zMinG)*(nZG-1)
 
+    ; Plot 3d
+    ; -------
+
     range = [-1,1]*0.15 
     p=plot3d( (gr.ray_x[0,*])[*], (gr.ray_y[0,*])[*], (gr.ray_z[0,*])[*], $
         lineStyle='none', symbol='s', sym_size=1.0, $
-        xRange = range, yRange = range, aspect_ratio=1.0, aspect_z = 1.0 )
+        xRange = range, yRange = range, aspect_ratio=1.0, aspect_z = 1.0, /buffer )
     for n=0,n_elements(gr.ray_x[0,*])-1 do begin
         p=plot3d( gr.ray_x[0:gr.nrayelt[n]-1,n], $
             gr.ray_y[0:gr.nrayelt[n]-1,n], gr.ray_z[0:gr.nrayelt[n]-1,n]$
@@ -260,9 +276,21 @@ pro genray_plot
         p=plot3d(_x,_y,_z,/over,thick=3,color='r',transparency=60)
     endfor
 
-    c = contour(transpose(gr.spwr_rz_e), gr.pwr_z, gr.pwr_r, layout=[1,3,1],/fill,title='power absorped (e)')
+    cB.save, 'rays-3d.png', resolution=300
+
+    ; ----------------------
+
+    ; Plot 2
+    ; ------
+
+    c = contour(transpose(gr.spwr_rz_e), gr.pwr_z, gr.pwr_r, layout=[1,3,1],/fill,title='power absorped (e)',/buffer)
     c = contour(transpose(gr.spwr_rz_i), gr.pwr_z, gr.pwr_r, layout=[1,3,2],/current,/fill,title='power absorped (i)')
     c = contour(transpose(gr.spwr_rz_cl), gr.pwr_z, gr.pwr_r, layout=[1,3,3],/current,/fill,title='power absorped (cl)')
+
+    c.save, 'plot2.png', res=300
+
+    ; Plot 3
+    ; ------
 
     nL = string(10B)
     p=plot(gr.pwr_r,total(pow_e_percent,/cum),$
@@ -271,20 +299,24 @@ pro genray_plot
             +' (e: '+string(totalAbsorbedPower_e,format='(f4.1)')+'%, ' $
             +' i: '+string(totalAbsorbedPower_i,format='(f4.1)')+'%, ' $
             +' c: '+string(totalAbsorbedPower_c,format='(f4.1)')+'%)', $
-            yTitle = 'Absorbed Power', xTitle='r [m]',thick=2, color='b')
+            yTitle = 'Absorbed Power', xTitle='r [m]',thick=2, color='b',/buffer)
     p=plot(gr.pwr_r,total(pow_i_percent,/cum),color='r',/over,thick=2)
     p=plot(gr.pwr_r,total(pow_c_percent,/cum),/over,thick=2)
     thisDensity = interpol( gr.dens_xy[*,n_elements(gr.x)/2]/max(gr.dens_xy[*,n_elements(gr.x)/2])*100, gr.x, gr.pwr_r )
     pp=plot(gr.pwr_r,thisDensity,/over)
 
-    ; Plot kPar 
+    p.save, 'plot3.png', res=300
 
-    p=plot( gr.wkpar[0:gr.nrayelt[0]-1,0], zTitle='kPar')
+
+    ; Plot kPar 
+    ; ---------
+
+    p=plot( gr.wkpar[0:gr.nrayelt[0]-1,0], zTitle='kPar', /buffer)
     for n=1,n_elements(gr.ray_x[0,*])-1 do begin
         p=plot( gr.wkpar[0:gr.nrayelt[n]-1,n], /over)
     endfor
 
-   
+    p.save, 'kpar.png', res=300 
 
 stop
 end
