@@ -5,7 +5,7 @@ pro genray_scan, runGENRAY = _runGENRAY
     @constants
 
 	templateDir = 'template'    	
-    genrayBinary = expand_path( '~/code/genray-c/genray-c_160826.1/xgenray' )
+    genrayBinary = expand_path( '/Users/dg6//code/genray-c/genray-c_160826.1/xgenray' )
 
     freq = 28e9
     wrf = 2*!pi*freq
@@ -31,12 +31,13 @@ pro genray_scan, runGENRAY = _runGENRAY
     if nW gt 1 then width = fIndGen(nW)/(nW-1)*(wMax-wMin)+wMin else width=[width_noscan]
 
     ; Coil Currents
-    
+   
+    curr_multiplier = [6800.,8000.,8000.,6800.] / 6800.0 
+
     nC = 1 
     curMin = 100
     curMax = 285
     cur_noscan = 228 ; 5700
-    cur_noscan = 160 ; 4000
     if nC gt 1 then curc = fIndGen(nC)/(nC-1)*(curMax-curMin)+curMin else curc=[cur_noscan]
 
 	nC = n_elements(curc)
@@ -140,7 +141,8 @@ pro genray_scan, runGENRAY = _runGENRAY
 
             densityParams = { floor_:floor_, mag:mag, offset:offset, width:width[w]}
 
-            genray_set_params, current = curc[c], rayTxt = rayTxt, density = densityParams, T_eV = T_eV[t]
+            genray_set_params, current = curc[c], rayTxt = rayTxt, density = densityParams, $
+                    T_eV = T_eV[t], curr_multiplier = curr_multiplier
 
         endif else begin
             print, 'Parameters left alone'

@@ -1,4 +1,9 @@
-pro genray_set_params, current = current, rayTxt = rayTxt, density = density, T_eV = T_eV 
+pro genray_set_params, $
+        current = current, $
+        rayTxt = rayTxt, $
+        density = density, $ 
+        T_eV = T_eV, $
+        curr_multiplier = curr_multiplier 
 
     fileName = 'genray.in'
     backupFileName = 'genray.in.template'
@@ -30,10 +35,18 @@ pro genray_set_params, current = current, rayTxt = rayTxt, density = density, T_
 
         lineNo = 180 
 
+        nCoils = n_elements(curr_multiplier)
+
         print, 'UPDATING CURRENTS BLOCK'
-        cStr = string( current, format='(i3.3)')
-        ;cStrMod = string( current+1, format='(i3.3)')
-        newStr =  ' curc= 0.d3,  '+cStr+'.d3,  '+cStr+'.d3,  '+cStr+'.d3'
+        newStr = 'curc= '
+        for _c=0,nCoils-1 do begin
+            cStr = string( current*curr_multiplier[_c], format='(i3.3)')
+            if _c eq nCoils-1 then begin
+                newStr = newStr + cStr+'.d3'
+            endif else begin
+                newStr = newStr + cStr+'.d3,  '
+            endelse
+        endfor
         aboveRays[lineNo] = newStr
 
     endif
