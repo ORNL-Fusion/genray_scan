@@ -289,7 +289,7 @@ pro genray_scan, runGENRAY = _runGENRAY
         c=contour(alog10(pwr_e_percent),r,y,c_value=levels,c_color=colors,rgb_table=3,xRange=xRange,$
                 xtitle=xTitle, ytitle=yTitle, $
                 title='Log10(Deposited Power) (e)'+nl+nl+'Max Value: '+string(max(pwr_e_percent[iiGood]),format='(f4.1)')+'%', $
-                layout=[3,1,1],/fill,dimensions=dimensions, font_size=fs, xMinor=0,margin=margin)
+                layout=[3,1,1],/fill,dimensions=dimensions, font_size=fs, xMinor=0,margin=margin,/buffer)
         ;totale = total(pwr_e_percent,1)*xRange[1]/100.0 
         ;p=plot(totale,y,xRange=xRange,/over,color='dodger blue',thick=4,transp=30)
         ;ax=p.axes
