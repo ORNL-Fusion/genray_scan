@@ -63,7 +63,17 @@ pro genray_set_params, $
 
     endif
 
-    template_wall_rmax = 0.12  
+    template_wall_rmax = 0.09 ; I had to calibrate this number by hand. WTF. Where is it set? 
+
+    if keyword_set(density) or keyword_set(T_eV) then begin
+
+        nProfile = 64
+        lineNo = 697
+
+        newStr = ' ndens='+string(nProfile,format='(i3.3)')
+        aboveRays[lineNo] = newStr
+
+    endif
 
     ; Overwrite the density profile
     ; -----------------------------
@@ -72,21 +82,14 @@ pro genray_set_params, $
 
         densStart = 143 ; Within the belowRays block 
 
-        nDens = 64
-
         floor_ = density.floor_
         mag = density.mag 
         offset = density.offset 
         width = density.width 
 
-        ;floor_ = 1e17
-        ;mag = 9e18
-        ;offset = 3.2 ; cm
-        ;width = 0.38 ; cm
-        
         xMin = 0
         xMax = template_wall_rmax
-        nX = nDens
+        nX = nProfile
         x = fIndGen(nX)/(nX-1)*(xMax-xMin)+xMin
         y = ( mag * ( 1.0 - tanh( (x*1e2-offset)/width ) ) ) > floor_ 
 
@@ -95,7 +98,9 @@ pro genray_set_params, $
             densBlock = [ densBlock, string(y[i]) ]
         endfor
 
-        belowRays[densStart:densStart+nDens-1] = densBlock
+        belowRays[densStart:densStart+nProfile-1] = densBlock
+
+        save, x, y, fileName='density.sav'
 
     endif    
 
@@ -107,9 +112,7 @@ pro genray_set_params, $
 
         tempStart = 237 ; Within the belowRays block 
 
-        nTemp = 64
-
-        template_wall_rmax = 0.12  
+        nTemp = nProfile
 
         T = fltArr(nTemp) + T_eV * 1e-3
 

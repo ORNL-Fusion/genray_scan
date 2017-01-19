@@ -21,7 +21,7 @@ pro genray_scan, runGENRAY = _runGENRAY
     ; Density
 
     floor_ = 1e17
-    mag = 9e18*2
+    mag = 9e18
     offset = 3.2 ; cm
 
     nW = 1 
@@ -32,9 +32,9 @@ pro genray_scan, runGENRAY = _runGENRAY
 
     ; Coil Currents
    
-    curr_multiplier = [6800.,8000.,8000.,6800.] / 6800.0 
+    curr_multiplier = [0.,6800.,6800.,6800.] / 6800.0 
 
-    nC = 1 
+    nC = 24 
     curMin = 100
     curMax = 285
     cur_noscan = 228 ; 5700
@@ -66,7 +66,7 @@ pro genray_scan, runGENRAY = _runGENRAY
     spread_deg_z_noscan = -5.0
     if nSz gt 1 then spread_deg_z = fIndGen(nSz)/(nSz-1)*(spreadzMax-spreadzMin)+spreadzMin else spread_deg_z=[spread_deg_z_noscan]
 
-    nA = 24 
+    nA = 1 
     angleMin = -37.0
     angleMax = -30.0
     angle_noscan = -34.0
@@ -158,7 +158,7 @@ pro genray_scan, runGENRAY = _runGENRAY
             launchScript = [ launchScript, $
                     'cd '+thisDir, $
                     'cp '+genrayBinary+' '+thisBinary, $ 
-                    './'+thisBinary+' > ../genray.log.'+thisDir+' &', $
+                    'nice -n +5 ./'+thisBinary+' > ../genray.log.'+thisDir+' &', $
                     'cd ..' ]
             ++nJobsToRun
         endif else begin

@@ -11,8 +11,8 @@ pro genray_plot
     radius = 0.06
 
 	nX = 128 
-    nY = 128 
-	nZ = 128 
+    nY = 140 
+	nZ = 160 
 
 	xMin = -radius*2
 	xMax = +radius*2
@@ -160,11 +160,14 @@ pro genray_plot
 
     c=contour(dens_xz,zUse,xUse,n_lev=15,c_value=10d0^[15,16,17,18,19,20],c_color=0,c_label_show=1,xrange=xrange,yRange=yrange,/buffer)
     c.save, 'density-2d.png', res=300
-    pp=plot(xUse,dens_xz[*,nX/2],/ylog,/buffer)
+    restore, 'density.sav'
+    pp=plot(xUse,dens_xz[nX/2,*],/ylog,/buffer)
+    pp=plot(x,y,/over,color='r')
     pp.save, 'density-1d-log.png', res=300
-    pp=plot(xUse,dens_xz[*,nX/2],/buffer)
+    pp=plot(xUse,dens_xz[nX/2,*],/buffer,xtitle='x [m]',ytitle='Electron Density [1/m^3]',margin=[0.25,0.1,0.1,0.1])
+    pp=plot(x,y,/over,color='r')
     pp.save, 'density-1d.png', res=300
-
+stop
 
 
     ; Single panel plot with density
